@@ -1,0 +1,44 @@
+module square_wave(
+    input clk,
+    output reg [11:0] dac_in,
+    input semaphore
+    );
+
+
+reg [11:0] counter;
+initial begin
+counter = 0;
+end
+
+
+always @ (posedge clk) 
+begin
+    if (semaphore == 1)
+    begin
+        if( counter > 511)
+        begin
+            counter = 0;
+        end
+        else
+        begin
+             counter = counter + 1;
+        end
+        
+        if (counter < 255) 
+        begin
+            dac_in = 16'b0000111111111111;   
+        end
+        else if (counter >= 255)
+        begin
+           dac_in = 16'b0000000000000000;
+        end
+    end
+    else if (semaphore != 1)
+    begin
+        dac_in = 16'b0000000000000000;
+        counter = 0;
+    end
+end
+
+endmodule 
+

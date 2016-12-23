@@ -1,0 +1,309 @@
+
+/*
+* The timings for communicating with the DAC need to be respected. We need to 
+* send 3 signals to the Pmod (Peripheral module)
+* 1. ~SYNC or chip select
+* 2. SCLK - Serial Clock
+* 3. DINA - Data
+
+* Passed data wil convert to a voltage output at the DAC
+*/
+
+module DAC(clk,btn,not_SYNC,SCLK,DINA,sw, data_line, led);
+
+/*  Port Declarations */
+input clk;
+reg p_clk;
+output reg not_SYNC;
+output reg SCLK;
+output reg DINA;
+output[10:0] data_line;
+output reg [3:0] led;
+/* Port Declarations */
+
+/* Used to switch between waveforms */
+input [3:0] sw;
+/* Used to switch between waveforms */
+
+/* Used in Amplitude and Frequency variation */
+input[3:0] btn;
+/* Used in Amplitude and Frequency variation */
+
+
+/* Used in Amplitude variation */
+integer x = 33;
+reg [5:0] multiplier;
+reg [15:0] data2;
+/* Used in Amplitude variation */
+
+/* Used in Frequency variation */
+/* The frequency changer is used to slow down the serial clock */
+reg [5:0] frequency_changer;
+/* Used in Frequency variation */
+
+reg [4:0] p_counter;
+reg [4:0] pp_counter;
+
+/* 12 bit data component to be passed to the module */
+wire [11:0] data_12;
+wire [11:0] data_saw_tooth_12;
+wire [11:0] data_square_12;
+wire [11:0] data_triangle_12;
+wire [11:0] data_sine_12;
+reg semaphore_st;
+reg semaphore_s;
+reg semaphore_t;
+reg semaphore_sine;
+reg [1:0] wave;
+wire[14:0] data; 
+wire [5:0] amp, frq;
+//wire [11:0] data_line;
+
+/* Init the p_clk */
+initial
+begin
+    p_clk = 0;
+    p_counter = 0;
+    pp_counter = 0;
+    not_SYNC = 1;
+    multiplier = 33;
+    frequency_changer = 5;
+    semaphore_st = 0;
+    semaphore_s = 0;
+    semaphore_t = 0;
+    semaphore_sine = 0;
+    wave = 2'b00;
+    
+    
+end
+
+assign amp = 6'b001010;
+assign frq = 6'b000101;
+/* dyanmic cursors */
+reg [3:0] index;
+reg [4:0] serial_counter;
+
+/* Instantiating each of the modules */
+sawtooth_wave sawtooth(p_clk, data_saw_tooth_12, semaphore_st);
+square_wave square(p_clk, data_square_12, semaphore_s);
+triangular_wave triangle(p_clk, data_triangle_12, semaphore_t);
+sine_wave sine(p_clk, data_sine_12, semaphore_sine);
+
+
+lcd_display_8 lcd(clk, multiplier, frequency_changer, wave, data_line);
+
+
+assign data = semaphore_st > 0? {{1'b0},{1'b0},{1'b0},{1'b0},{data_saw_tooth_12}}: 
+              semaphore_s > 0? {{1'b0},{1'b0},{1'b0},{1'b0},{data_square_12}}: 
+              semaphore_t > 0? {{1'b0},{1'b0},{1'b0},{1'b0},{data_triangle_12}}:
+             semaphore_sine > 0? {{1'b0},{1'b0},{1'b0},{1'b0},{ data_sine_12}}:
+              16'b1100111111111111;
+
+always @ (posedge btn[3])
+
+begin
+    if (sw[3] == 1) 
+    begin
+        if (sw[2] == 0)
+        begin
+            if (sw[1] == 0)
+            begin
+                if (sw[0] == 0)
+                begin
+                semaphore_st = 1;
+                semaphore_s = 0;
+                semaphore_t = 0;
+                semaphore_sine = 0;
+                wave = 2'b11;
+               // wave = 0;
+                end
+            end
+        end
+    end
+    
+    else  if ((sw[2] == 1))
+        begin
+            if (sw[3] == 0)
+            begin
+                if (sw[1] == 0)
+                begin
+                    if (sw[0] == 0)
+                    begin
+                    semaphore_st = 0;
+                    semaphore_s = 1;
+                    semaphore_t = 0;
+                    semaphore_sine = 0;
+                    wave = 2'b01;
+                   // wave = 1;
+                    end
+                end
+            end
+        end
+      
+    else  if ((sw[1] == 1))
+                begin 
+                    if (sw[2] == 0)
+                    begin
+                        if (sw[3] == 0)
+                        begin
+                            if (sw[0] == 0)
+                            begin
+                            semaphore_st = 0;
+                            semaphore_s = 0;
+                            semaphore_t = 1;
+                            semaphore_sine = 0;
+                            wave = 2'b10;
+                          //  wave = 2;
+                            end
+                        end
+                    end
+                end
+     else  if ((sw[0] == 1))
+                               begin 
+                                   if (sw[2] == 0)
+                                   begin
+                                       if (sw[3] == 0)
+                                       begin
+                                           if (sw[1] == 0)
+                                           begin
+                                           semaphore_st = 0;
+                                           semaphore_s = 0;
+                                           semaphore_t = 0;
+                                           semaphore_sine = 1;
+                                           wave = 2'b00;
+                                          // wave = 3;
+                                           end
+                                       end
+                                   end
+                               end
+    else  if ((sw[3] == 0))
+      begin
+           if (sw[2] == 0)
+           begin
+                if (sw[1] == 0)
+                begin
+                     if (sw[0] == 0)
+                     begin
+                          semaphore_st = 0;
+                          semaphore_s = 0;
+                          semaphore_t = 0;
+                          semaphore_sine = 0;
+                     end
+                end
+           end
+      end      
+               
+                      
+end
+
+
+ 
+
+initial
+begin   
+    index = 4'b1111; // Setting the index to 15
+    serial_counter = 5'b00000; // Setting the serial counter to zero;
+end
+
+reg [32:0] timer_counter; // Var used to slow down the clk
+/* Initialize the timer_counter */
+initial
+    begin   
+        timer_counter = 0;
+        SCLK = 0;
+    end
+    
+/* Slow down the clock */
+always @ (posedge clk)
+begin
+        if (timer_counter == frequency_changer)
+        begin
+            SCLK = ~SCLK;
+            timer_counter = 0; 
+        end
+        else
+        begin
+            timer_counter = timer_counter + 1;
+        end
+end
+
+/* Handle pseudo clock and not_sync signal */
+always @ (negedge SCLK) begin
+    if(p_counter == 17)//17
+    begin
+    not_SYNC = 1;
+    p_counter = 0;
+      p_clk = !p_clk;
+    end
+    else if (p_counter == 0)
+    begin
+    not_SYNC = 0;
+    p_counter = p_counter + 1;
+    end
+    else
+    begin
+    p_counter = p_counter + 1;
+    end
+end
+
+
+/* Source dedicated to amplitude variation */
+always @ (posedge btn[0]) begin
+   
+    if (multiplier >=33) 
+    begin
+          multiplier = 1;
+    end
+    
+    else 
+    begin
+          multiplier = multiplier + 1;
+    end
+end
+/* Source dedicated to frequency variation */
+
+always @ (posedge btn[1]) begin
+          if(frequency_changer >= 15) begin
+          frequency_changer <= 5;
+          end
+          else if (frequency_changer < 15) begin 
+          frequency_changer <= frequency_changer + 1;
+          end
+
+end
+
+
+
+
+always @ (posedge SCLK)
+    begin
+    
+              
+    if(frequency_changer == 5) begin
+    led = 4'b1111;
+    end
+    else begin
+    led = 4'b0000;
+    end
+    
+        if (serial_counter == 5'b10001) 
+        begin
+            index = 4'b1111;
+            serial_counter = 0;
+    
+        end 
+        else
+             begin
+                  if(not_SYNC == 0) 
+                  begin
+                       data2 = multiplier*data/(x);
+                       DINA = data2[index];
+                       index = index - 1; 
+                       serial_counter = serial_counter + 1;
+                 end
+             end
+        end
+
+
+
+endmodule

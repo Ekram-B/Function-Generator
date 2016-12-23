@@ -1,0 +1,61 @@
+module triangular_wave(
+    input clk,
+    output reg [11:0] dac_in,
+    input semaphore
+    );
+
+reg [11:0] counter;
+reg [11:0] data;
+initial begin
+counter = 0;
+data = 0;
+end
+
+
+always @ (posedge clk) 
+begin
+    if (semaphore == 1)
+    begin
+        if( counter > 511)
+        begin
+            counter = 0;
+        end
+        else
+            counter = counter + 1;
+        
+   
+         if (counter < 255) 
+         begin
+            if (data == 4096)
+            begin
+                // Do Nothing
+            end
+        
+            dac_in = {{1'b0},{1'b0},{1'b0},{1'b0},{data}};
+             data = data + 16;
+         end
+    
+        else if (counter >= 255)
+        begin
+           if (data == 0)
+           begin
+                //Do nothing
+           end 
+           
+           else
+           begin
+                   dac_in = {{1'b0},{1'b0},{1'b0},{1'b0},{data}};
+                   data = data - 16;
+           end
+        end
+    end
+
+else if (semaphore != 1)
+    begin
+        dac_in = {{1'b0},{1'b0},{1'b0},{1'b0},{12'b000000000000}};
+        data = 0;
+        counter = 0;
+    end
+end
+endmodule 
+

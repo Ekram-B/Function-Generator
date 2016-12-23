@@ -1,0 +1,842 @@
+`timescale 1ns / 1ps
+
+module lcd_display_8 (input clk, input [5:0] amplitude, input [5:0] frequencyselection, input [1:0] wave, output wire [10:0] data);
+
+    parameter clock = 125000000;
+    parameter milisecond = (clock/1000); 
+
+    reg enable;
+    reg rw;
+    reg rs;
+    reg [7:0] data_line;
+
+    reg trigger;
+    reg [30:0] clockcounter;
+    reg [10:0] current_state;
+    
+    initial begin
+        current_state = 0;
+        clockcounter = 0;              
+    end
+
+    always @(posedge clk) begin                          
+        if (clockcounter == (3*milisecond)) begin  
+            trigger <= 1;
+            clockcounter <= 0;            
+        end else begin
+            trigger <= 0;
+            clockcounter <= clockcounter + 1;
+        end        
+     end
+
+    
+    always @ (posedge trigger) begin                          
+        case (current_state)            
+            0: begin       // First inicialization command
+                enable = 1;
+                rs = 0;
+                rw = 0;
+                current_state = current_state + 1;
+               end
+            
+            1: begin
+                data_line = 8'b001110xx;
+                current_state = current_state + 1;
+               end
+            
+            2: begin
+                enable = 0;
+                current_state = current_state + 1;
+               end        
+                
+            3: begin       // Second inicialization command
+                enable = 1;
+                current_state = current_state + 1;
+               end
+            
+            4: begin
+                data_line = 8'b00001111; 
+                current_state = current_state + 1;
+               end
+            
+            5: begin       
+                enable = 0;
+                current_state = current_state + 1;
+               end        
+            
+            6: begin      //Third inicialization command
+                enable = 1;
+                rs = 0;
+                rw = 0;
+                current_state = current_state + 1;
+               end
+            
+            7: begin
+                data_line = 8'b00000001; 
+                current_state = current_state + 1;
+               end
+            
+            8: begin
+                enable = 0;
+                current_state = current_state + 1;
+               end        
+                
+            9: begin        //Fourth inicialization command
+                enable = 1;
+                rs = 0;
+                rw = 0;
+                current_state = current_state + 1;
+               end
+            
+            10:begin   
+                data_line = 8'b00000110;
+                current_state = current_state + 1;
+               end
+            
+            11:begin
+               rs=1;
+               rw=0;
+               enable = 0;
+               current_state = current_state + 1;
+             end        
+                  
+                  
+            12:begin // A
+                enable = 1;
+                current_state = current_state + 1;
+            end        
+               
+            13:begin   
+                data_line = 8'b01000001;
+                current_state = current_state + 1;
+            end
+            
+            14:begin
+               enable = 0;
+               current_state = current_state + 1;
+            end                     
+            
+            
+            15:begin // m
+               enable = 1;
+               current_state = current_state + 1;
+            end        
+              
+            16:begin   
+               data_line = 8'b01101101;
+               current_state = current_state + 1;
+            end
+            
+            17:begin
+              enable = 0;
+              current_state = current_state + 1;
+            end                     
+                   
+            
+            18:begin // p
+              enable = 1;
+              current_state = current_state + 1;
+            end        
+             
+            19:begin   
+              data_line = 8'b01110000;
+              current_state = current_state + 1;
+            end
+            
+            20:begin
+              enable = 0;
+              current_state = current_state + 1;
+            end                    
+            
+            21:begin // :
+              enable = 1;
+              current_state = current_state + 1;
+            end        
+             
+            22:begin   
+              data_line = 8'b00111010;
+              current_state = current_state + 1;
+            end
+            
+            23:begin
+              enable = 0;
+              current_state = current_state + 1;
+            end                     
+            
+            
+            24:begin // Writes amplitude
+              enable = 1;
+              current_state = current_state + 1;
+            end        
+            
+            25:begin   
+              if ((amplitude >= 0) && (amplitude <= 9)) begin
+                data_line = 8'b00110000;
+              end else if ((amplitude >= 10) && (amplitude <= 19)) begin
+                data_line = 8'b00110001;
+              end else if ((amplitude >= 20) && (amplitude <= 29)) begin
+                data_line = 8'b00110010;
+              end else if ((amplitude >= 30)) begin
+                data_line = 8'b00110011;
+              end
+              current_state = current_state + 1;
+            end
+            
+            26:begin
+              enable = 0;
+              current_state = current_state + 1;
+            end                   
+            
+            
+             27:begin  //.
+                 enable = 1;
+                 current_state = current_state + 1;
+               end        
+                
+               28:begin   
+                 data_line = 8'b00101110;
+                 current_state = current_state + 1;
+               end
+               
+               29:begin
+                 enable = 0;
+                 current_state = current_state + 1;
+               end       
+
+              
+            
+            30:begin // Writes amplitude
+                  enable = 1;
+                  current_state = current_state + 1;
+                end        
+                
+            31:begin   
+              case (amplitude)
+                  0: data_line = 8'b00110000;
+                  1: data_line = 8'b00110001;
+                  2: data_line = 8'b00110010;
+                  3: data_line = 8'b00110011;
+                  4: data_line = 8'b00110100;
+                  5: data_line = 8'b00110101;
+                  6: data_line = 8'b00110110;
+                  7: data_line = 8'b00110111;
+                  8: data_line = 8'b00111000;
+                  9: data_line = 8'b00111001;
+                  10: data_line = 8'b00110000;
+                  11: data_line = 8'b00110001;
+                  12: data_line = 8'b00110010;
+                  13: data_line = 8'b00110011;
+                  14: data_line = 8'b00110100;
+                  15: data_line = 8'b00110101;
+                  16: data_line = 8'b00110110;
+                  17: data_line = 8'b00110111;
+                  18: data_line = 8'b00111000;
+                  19: data_line = 8'b00111001;
+                  20: data_line = 8'b00110000;
+                  21: data_line = 8'b00110001;
+                  22: data_line = 8'b00110010;
+                  23: data_line = 8'b00110011;
+                  24: data_line = 8'b00110100;
+                  25: data_line = 8'b00110101;
+                  26: data_line = 8'b00110110;
+                  27: data_line = 8'b00110111;
+                  28: data_line = 8'b00111000;
+                  29: data_line = 8'b00111001;
+                  30: data_line = 8'b00110000;
+                  31: data_line = 8'b00110001;
+                  32: data_line = 8'b00110010;
+                  33: data_line = 8'b00110011;
+              endcase
+              current_state = current_state + 1;
+            end
+            
+            32:begin
+              enable = 0;
+              current_state = current_state + 1;
+            end                     
+        
+            33:begin  //V
+              enable = 1;
+              current_state = current_state + 1;
+            end        
+             
+            34:begin   
+              data_line = 8'b01010110;
+              current_state = current_state + 1;
+            end
+            
+            35:begin
+              enable = 0;
+              current_state = current_state + 1;
+            end          
+
+           36:begin  //p
+              enable = 1;
+              current_state = current_state + 1;
+            end        
+             
+            37:begin   
+              data_line = 8'b01110000;
+              current_state = current_state + 1;
+            end
+            
+            38:begin
+              enable = 0;
+              current_state = current_state + 1;
+            end       
+            
+            
+            39:begin  //p
+               enable = 1;
+               current_state = current_state + 1;
+             end        
+              
+             40:begin   
+               data_line = 8'b01110000;
+               current_state = current_state + 1;
+             end
+             
+             41:begin
+               enable = 0;
+               current_state = current_state + 1;
+             end       
+
+
+
+            42:begin  //Move cursor to end of the line
+               rs = 0;
+               rw = 0;
+               enable = 1;
+               current_state = current_state + 1;
+             end       
+
+
+             43:begin  
+               
+               data_line = 8'b10001101;
+               current_state = current_state + 1;
+             end     
+
+            44:begin
+             
+               enable = 0;
+               current_state = current_state + 1;
+             end  
+
+
+            45:begin  //First letter of the wave
+               rs = 1;
+               rw = 0;
+               enable = 1;
+               current_state = current_state + 1;
+             end       
+
+
+             46:begin  
+              
+               case (wave)
+                0: data_line = 8'b01010011;
+                1: data_line = 8'b01010011;
+                2: data_line = 8'b01010100;
+                3: data_line = 8'b01010011;
+               endcase
+               current_state = current_state + 1;
+             end     
+
+            47:begin
+             
+               enable = 0;
+               current_state = current_state + 1;
+             end  
+
+
+            48:begin  //Second letter of the wave
+               enable = 1;
+               current_state = current_state + 1;
+             end       
+
+
+             49:begin                 
+               case (wave)
+                 0: data_line = 8'b01101001;
+                 1: data_line = 8'b01110001;
+                 2: data_line = 8'b01110010;
+                 3: data_line = 8'b01110100;
+                endcase
+               current_state = current_state + 1;
+             end     
+
+            50:begin
+             
+               enable = 0;
+               current_state = current_state + 1;
+             end  
+
+
+            51:begin  //Third letter of the wave
+               enable = 1;
+               current_state = current_state + 1;
+             end       
+
+
+             52:begin  
+               case (wave)
+                  0: data_line = 8'b01101110;
+                  1: data_line = 8'b01110010;
+                  2: data_line = 8'b01101110;
+                  3: data_line = 8'b01101000;
+                endcase
+               current_state = current_state + 1;
+             end     
+
+            53:begin
+             
+               enable = 0;
+               current_state = current_state + 1;
+             end  
+
+
+
+
+
+            
+
+            54:begin  //Move cursor to second Line
+               rs = 0;
+               rw = 0;
+               enable = 1;
+               current_state = current_state + 1;
+             end       
+
+
+             55:begin  
+               
+               data_line = 8'b10101000;
+               current_state = current_state + 1;
+             end     
+
+            56:begin
+             
+               enable = 0;
+               current_state = current_state + 1;
+             end  
+
+
+            
+            57:begin  //F
+              rs = 1;
+                         rw = 0;
+            enable = 1;
+            current_state = current_state + 1;
+            end        
+            
+            58:begin   
+            data_line = 8'b01000110;
+            current_state = current_state + 1;
+            end
+            
+            59:begin
+            enable = 0;
+            current_state = current_state + 1;
+            end       
+            
+            
+            
+            
+            60:begin  //r
+            enable = 1;
+            current_state = current_state + 1;
+            end        
+            
+            61:begin   
+            data_line = 8'b01110010;
+            current_state = current_state + 1;
+            end
+            
+            62:begin
+            enable = 0;
+            current_state = current_state + 1;
+            end       
+            
+            
+           63:begin  //e
+            enable = 1;
+            current_state = current_state + 1;
+            end        
+            
+            64:begin   
+            data_line = 8'b01100101;
+            current_state = current_state + 1;
+            end
+            
+            65:begin
+            enable = 0;
+            current_state = current_state + 1;
+            end       
+
+                        
+            
+            66:begin  //q
+            enable = 1;
+            current_state = current_state + 1;
+            end        
+            
+            67:begin   
+            data_line = 8'b01110001;
+            current_state = current_state + 1;
+            end
+            
+            68:begin
+            enable = 0;
+            current_state = current_state + 1;
+            end       
+            
+            
+            
+            
+            69:begin // :
+              enable = 1;
+              current_state = current_state + 1;
+            end        
+                         
+            70:begin   
+              data_line = 8'b00111010;
+              current_state = current_state + 1;
+            end
+            
+            
+            71:begin
+              enable = 0;
+              current_state = current_state + 1;
+            end               
+
+
+            72:begin // first digit of frenquency - format: 0000.0Hz
+              enable = 1;
+              current_state = current_state + 1;
+            end        
+                         
+            73:begin   
+              case (frequencyselection)
+                
+              0: data_line = 8'b00110000;
+              1: data_line = 8'b00110000;
+              2: data_line = 8'b00110000;
+              3: data_line = 8'b00110000;
+              4: data_line = 8'b00110000;
+              5: data_line = 8'b00110000;
+              6: data_line = 8'b00110000;
+              7: data_line = 8'b00110000;
+              8: data_line = 8'b00110000;
+              9: data_line = 8'b00110000;
+              10: data_line = 8'b00110000;
+              11: data_line = 8'b00110000;
+              12: data_line = 8'b00110000;
+              13: data_line = 8'b00110000;
+              14: data_line = 8'b00110000;
+              15: data_line = 8'b00110000;
+              16: data_line = 8'b00110000;
+              17: data_line = 8'b00110000;
+              18: data_line = 8'b00110000;
+              19: data_line = 8'b00110000;
+              20: data_line = 8'b00110000;
+              21: data_line = 8'b00110000;
+              22: data_line = 8'b00110000;
+              23: data_line = 8'b00110000;
+              24: data_line = 8'b00110000;
+              25: data_line = 8'b00110000;
+              26: data_line = 8'b00110000;
+              27: data_line = 8'b00110000;
+              28: data_line = 8'b00110000;
+              29: data_line = 8'b00110000;
+              30: data_line = 8'b00110000;
+              31: data_line = 8'b00110000;
+              32: data_line = 8'b00110001;
+              
+
+              endcase
+              current_state = current_state + 1;
+            end
+            
+            74:begin
+              enable = 0;
+              current_state = current_state + 1;
+            end           
+            
+            
+            
+            75:begin // Second digit of frenquency
+              enable = 1;
+              current_state = current_state + 1;
+            end        
+                         
+            76:begin   
+            case (frequencyselection)
+                0: data_line = 8'b00110000;
+                1: data_line = 8'b00110000;
+                2: data_line = 8'b00110000;
+                3: data_line = 8'b00110000;
+                4: data_line = 8'b00110000;
+                5: data_line = 8'b00110000;
+                6: data_line = 8'b00110000;
+                7: data_line = 8'b00110000;
+                8: data_line = 8'b00110000;
+                9: data_line = 8'b00110000;
+                10: data_line = 8'b00110000;
+                11: data_line = 8'b00110000;
+                12: data_line = 8'b00110000;
+                13: data_line = 8'b00110000;
+                14: data_line = 8'b00110001;
+                15: data_line = 8'b00110001;
+                16: data_line = 8'b00110010;
+                17: data_line = 8'b00110010;
+                18: data_line = 8'b00110011;
+                19: data_line = 8'b00110011;
+                20: data_line = 8'b00110100;
+                21: data_line = 8'b00110100;
+                22: data_line = 8'b00110101;
+                23: data_line = 8'b00110101;
+                24: data_line = 8'b00110110;
+                25: data_line = 8'b00110110;
+                26: data_line = 8'b00110111;
+                27: data_line = 8'b00110111;
+                28: data_line = 8'b00111000;
+                29: data_line = 8'b00111000;
+                30: data_line = 8'b00111001;
+                31: data_line = 8'b00111001;
+                32: data_line = 8'b00110000;
+                endcase
+              current_state = current_state + 1;
+            end
+            
+            
+            77:begin
+              enable = 0;
+              current_state = current_state + 1;
+            end               
+            
+             78:begin // Third digit of frenquency
+                 enable = 1;
+                 current_state = current_state + 1;
+               end        
+                            
+               79:begin   
+               case (frequencyselection)
+                   0: data_line = 8'b00110000;
+                   1: data_line = 8'b00110000;
+                   2: data_line = 8'b00110000;
+                   3: data_line = 8'b00110000;
+                   4: data_line = 8'b00110000;
+                   5: data_line = 8'b00110001;
+                   6: data_line = 8'b00110010;
+                   7: data_line = 8'b00110011;
+                   8: data_line = 8'b00110100;
+                   9: data_line = 8'b00110101;
+                   10: data_line = 8'b00110110;
+                   11: data_line = 8'b00110111;
+                   12: data_line = 8'b00111000;
+                   13: data_line = 8'b00111001;
+                   14: data_line = 8'b00110000;
+                   15: data_line = 8'b00110101;
+                   16: data_line = 8'b00110000;
+                   17: data_line = 8'b00110101;
+                   18: data_line = 8'b00110000;
+                   19: data_line = 8'b00110101;
+                   20: data_line = 8'b00110000;
+                   21: data_line = 8'b00110101;
+                   22: data_line = 8'b00110000;
+                   23: data_line = 8'b00110101;
+                   24: data_line = 8'b00110000;
+                   25: data_line = 8'b00110101;
+                   26: data_line = 8'b00110000;
+                   27: data_line = 8'b00110101;
+                   28: data_line = 8'b00110000;
+                   29: data_line = 8'b00110101;
+                   30: data_line = 8'b00110000;
+                   31: data_line = 8'b00110101;
+                   32: data_line = 8'b00110000;
+
+                   endcase
+                 current_state = current_state + 1;
+               end
+               
+               
+               80:begin
+                 enable = 0;
+                 current_state = current_state + 1;
+               end                          
+    
+            
+             81:begin // Fourth digit of frenquency
+                enable = 1;
+                current_state = current_state + 1;
+              end        
+                           
+              82:begin   
+              case (frequencyselection)
+                  0: data_line = 8'b00110000;
+                  1: data_line = 8'b00110000;
+                  2: data_line = 8'b00110000;
+                  3: data_line = 8'b00110001;
+                  4: data_line = 8'b00110101;
+                  5: data_line = 8'b00110000;
+                  6: data_line = 8'b00110000;
+                  7: data_line = 8'b00110000;
+                  8: data_line = 8'b00110000;
+                  9: data_line = 8'b00110000;
+                  10: data_line = 8'b00110000;
+                  11: data_line = 8'b00110000;
+                  12: data_line = 8'b00110000;
+                  13: data_line = 8'b00110000;
+                  14: data_line = 8'b00110000;
+                  15: data_line = 8'b00110000;
+                  16: data_line = 8'b00110000;
+                  17: data_line = 8'b00110000;
+                  18: data_line = 8'b00110000;
+                  19: data_line = 8'b00110000;
+                  20: data_line = 8'b00110000;
+                  21: data_line = 8'b00110000;
+                  22: data_line = 8'b00110000;
+                  23: data_line = 8'b00110000;
+                  24: data_line = 8'b00110000;
+                  25: data_line = 8'b00110000;
+                  26: data_line = 8'b00110000;
+                  27: data_line = 8'b00110000;
+                  28: data_line = 8'b00110000;
+                  29: data_line = 8'b00110000;
+                  30: data_line = 8'b00110000;
+                  31: data_line = 8'b00110000;
+                  32: data_line = 8'b00110000;
+                  33: data_line = 8'b00110000;
+                  endcase
+                current_state = current_state + 1;
+              end
+              
+              
+              83:begin
+                enable = 0;
+                current_state = current_state + 1;
+              end                    
+
+              84:begin  //.
+                 enable = 1;
+                 current_state = current_state + 1;
+               end        
+                
+            85:begin   
+                 data_line = 8'b00101110;
+                 current_state = current_state + 1;
+               end
+               
+               86:begin
+                 enable = 0;
+                 current_state = current_state + 1;
+               end                  
+            
+            87:begin // Decimal digit of frenquency
+               enable = 1;
+               current_state = current_state + 1;
+             end        
+                          
+            88:begin   
+             case (frequencyselection)
+                        0: data_line = 8'b00110000;
+                     1: data_line = 8'b00110001;
+                     2: data_line = 8'b00110101;
+                     3: data_line = 8'b00110000;
+                     4: data_line = 8'b00110000;
+                     5: data_line = 8'b00110000;
+                     6: data_line = 8'b00110000;
+                     7: data_line = 8'b00110000;
+                     8: data_line = 8'b00110000;
+                     9: data_line = 8'b00110000;
+                     10: data_line = 8'b00110000;
+                     11: data_line = 8'b00110000;
+                     12: data_line = 8'b00110000;
+                     13: data_line = 8'b00110000;
+                     14: data_line = 8'b00110000;
+                     15: data_line = 8'b00110000;
+                     16: data_line = 8'b00110000;
+                     17: data_line = 8'b00110000;
+                     18: data_line = 8'b00110000;
+                     19: data_line = 8'b00110000;
+                     20: data_line = 8'b00110000;
+                     21: data_line = 8'b00110000;
+                     22: data_line = 8'b00110000;
+                     23: data_line = 8'b00110000;
+                     24: data_line = 8'b00110000;
+                     25: data_line = 8'b00110000;
+                     26: data_line = 8'b00110000;
+                     27: data_line = 8'b00110000;
+                     28: data_line = 8'b00110000;
+                     29: data_line = 8'b00110000;
+                     30: data_line = 8'b00110000;
+                     31: data_line = 8'b00110000;
+                     32: data_line = 8'b00110000;
+                 endcase
+               current_state = current_state + 1;
+             end
+             
+             
+             89:begin
+               enable = 0;
+               current_state = current_state + 1;
+             end                      
+            
+            
+            90:begin  //H
+            enable = 1;
+            current_state = current_state + 1;
+            end        
+            
+            91:begin   
+            data_line = 8'b01001000;
+            current_state = current_state + 1;
+            end
+            
+            92:begin
+            enable = 0;
+            current_state = current_state + 1;
+            end       
+                        
+                    
+           93:begin  //z
+           enable = 1;
+           current_state = current_state + 1;
+           end        
+           
+           94:begin   
+           data_line = 8'b01111010;
+           current_state = current_state + 1;
+           end
+           
+           95:begin
+           enable = 0;
+           current_state = current_state + 1;
+           end                                         
+            
+ 
+            96:begin  //Move cursor home
+                rs = 0;
+                rw = 0;
+               enable = 1;
+               current_state = current_state + 1;
+             end        
+              
+            97:begin   
+               data_line = 8'b00000010;
+               current_state = current_state + 1;
+             end
+             
+             98:begin
+               enable = 0;
+               current_state = 9;
+             end       
+ 
+        endcase  
+    end
+    
+    
+   assign data = {enable,rs,rw,data_line};
+   
+endmodule
